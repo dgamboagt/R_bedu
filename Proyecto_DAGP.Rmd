@@ -1,0 +1,693 @@
+---
+title: "Proyecto_R"
+author: "Dayana Gamboa"
+date: "2024-05-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+summary(cars)
+```
+install.packages("tidyverse")
+install.packages("corrplot")
+install.packages("qqplotr")
+install.packages("gridExtra")
+install.packages("GGally")
+install.packages("caret")
+install.packages("keras")
+install.packages("tensorflow")
+
+```{r}
+install.packages("neuralnet")
+
+library(GGally)
+library(ggplot2)
+library(corrplot)
+library(tidyverse)
+library(keras)
+library(qqplotr)
+library(gridExtra)
+library(PerformanceAnalytics)
+library(caret)
+library(keras)
+library(tensorflow)
+library(PerformanceAnalytics)
+library(dplyr)
+library(ggplot2)
+library(e1071)
+library(caret)
+library(e1071)
+library(tidyverse)
+library(caret)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+library(neuralnet)
+
+```
+
+```{r}
+datos_1 <- read.csv("C:/Users/dagam/OneDrive - Universidad Galileo/Escritorio/Cursos/Bedu/R/Proyecto/walmart_data.csv")
+
+```
+
+
+```{r}
+datos <- read.csv("C:/Users/dagam/OneDrive - Universidad Galileo/Escritorio/Cursos/Bedu/R/Proyecto/walmart_data.csv")
+
+```
+
+```{r}
+head(datos, 20)
+```
+
+
+
+```{r}
+str(datos)
+```
+```{r}
+head(datos)
+```
+```{r}
+boxplot(datos$Purchase, main="Boxplot of Purchase", ylab="Purchase Amount", col="lightblue")
+
+```
+```{r}
+mpurchase <-mean(datos$Purchase)
+mpurchase
+```
+
+```{r}
+ggplot(datos, aes(Purchase))+ 
+  geom_histogram(binwidth = 30, col="skyblue", fill = "blue") + 
+  ggtitle("Histograma de Ventas", paste("Media=",mpurchase)) +
+  ylab("Frecuencia") +
+  xlab("Ventas") +
+  geom_vline(xintercept =  mpurchase, col = "red", lwd = 1.5, lty =2)+
+  theme_light()
+
+```
+
+#Proporción de Nulos
+
+```{r}
+mean(is.na(datos$Purchase))
+```
+#Venta más alta
+```{r}
+(alta <- which.max(datos$Purchase))
+paste("El usuario ", datos$User_ID[alta],"tuvo la venta más alta es de" , round(datos$Purchase[alta],2), "")
+```
+#Venta más baja
+```{r}
+(baja <- which.min(datos$Purchase))
+paste("El usuario ", datos$User_ID[baja],"tuvo la venta más baja es de" , round(datos$Purchase[baja],2), "")
+```
+#Venta promedio
+```{r}
+ticket_promedio <- mean(na.omit(datos$Purchase))
+paste("Ticket promedio es:", round(ticket_promedio,2)," dólares")
+
+```
+```{r}
+datos_11 <- subset(datos, select = -c(User_ID, Product_ID))
+ggpairs(datos_11)
+```
+
+
+```{r}
+datos
+```
+
+
+# 7. Scatterplot de Asistencias totales vs Puntos, con un face wrap por posición.
+```{r}
+ggplot(datos, aes(x = Gender, y = Purchase, fill = Gender)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("pink", "lightblue"))+
+  labs(title = "Desglose de Ventas por Género", y = "Monto de Compra", x = "Género") +
+  theme_minimal()
+
+
+```
+
+
+```{r}
+ggplot(datos, aes(x = City_Category, y = Purchase)) +
+  geom_boxplot(fill = "grey") +
+  labs(title = "Boxplot of Purchase by City", y = "Purchase Amount", x = "City Category") +
+  theme_minimal()
+```
+```{r}
+frecuencia_edades <- table(datos$Age)
+frecuencia_edades
+```
+```{r}
+codificacion_edades <- data.frame(Age = names(frecuencia_edades), Frequency = as.numeric(frecuencia_edades))
+
+codificacion_edades$Frequency <- codificacion_edades$Frequency / nrow(datos)
+
+print(codificacion_edades)
+```
+
+```{r}
+
+datos_sin_columna_ID <- subset(datos, select = -c(User_ID, Product_ID, Purchase,Product_Category,Occupation))
+
+for (col in names(datos_sin_columna_ID)) {
+  unique_values <- unique(datos_sin_columna_ID[[col]])
+  print(paste("Valores únicos en la columna", col, ":"))
+  print(unique_values)
+}
+
+```
+
+
+
+#Imputación para Variables Categóricas
+```{r}
+datos$Gender <- factor(datos$Gender, levels = c("F", "M"), labels = c("0", "1"))
+datos$Gender <- as.integer(datos$Gender)
+
+datos$City_Category <- factor(datos$City_Category, levels = c("A", "B","C"), labels = c("0", "1","2"))
+datos$City_Category <- as.integer(datos$City_Category)
+
+datos$Age <- factor(datos$Age, levels = c("0-17","18-25","26-35", "36-45","46-50","51-55","55+"), labels = c(0, 1,2,3,4,5,6))
+datos$Age <- as.integer(datos$Age)
+
+
+datos$Stay_In_Current_City_Years <- gsub("\\+", "", datos$Stay_In_Current_City_Years)
+datos$Stay_In_Current_City_Years <- as.integer(datos$Stay_In_Current_City_Years)
+```
+
+```{r}
+datos <- read.csv("C:/Users/dagam/OneDrive - Universidad Galileo/Escritorio/Cursos/Bedu/R/Proyecto/walmart_data.csv")
+```
+
+
+```{r}
+datos
+```
+```{r}
+#Selección de variables para el análisis
+datos <- subset(datos, select = -c(User_ID,Product_ID))
+#datos_numericos <- datos[sapply(datos, is.numeric)]
+
+matriz_correlacion <- cor(datos)
+#Matriz de correlación
+print(matriz_correlacion)
+```
+
+
+```{r}
+
+matriz_correlacion <- cor(datos, use = "complete.obs")
+
+corrplot(matriz_correlacion, method = "color", tl.cex = 0.8, tl.col = "black", addCoef.col = "black", number.cex = 0.7)
+
+```
+```{r}
+ggplot(datos, aes(x = Product_Category, y = Purchase)) +
+  geom_point() +
+  labs(title = "Gráfico de Dispersión de Purchase vs Age", x = "Categoría de Producto", y = "Compra") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(datos, aes(x = seq_along(Purchase), y = Purchase)) +
+  geom_point(color = "blue") +
+  labs(title = "Gráfico de Dispersión de Compras", x = "Índice", y = "Compra") +
+  theme_minimal()
+```
+
+```{r}
+# Histograma
+p1 <- ggplot(datos, aes(x = Purchase)) +
+  geom_histogram(bins = 30, fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = "Densidad - Histograma", x = "LotFrontage", y = "Frecuencia") +
+  theme_minimal()
+
+# QQ-plot
+p2 <- ggplot(datos, aes(sample = Purchase)) +
+  stat_qq_point(shape = 16, size = 1.5, color = "blue") +
+  stat_qq_line(color = "red") +
+  labs(title = "QQ-plot") +
+  theme_minimal()
+
+# Boxplot
+p3 <- ggplot(datos, aes(y = Purchase)) +
+  geom_boxplot(fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = "Boxplot", y = "LotFrontage") +
+  theme_minimal()
+
+# Organizar los gráficos en una figura
+grid.arrange(p1, p2, p3, ncol = 3, widths = c(1, 1, 1))
+```
+
+```{r}
+# Calcular el Rango intercuartil
+IQR <- quantile(datos$Purchase, 0.75) - quantile(datos$Purchase, 0.25)
+# Calcular los límites inferior (LI) y superior (LS)
+LI <- quantile(datos$Purchase, 0.25) - (1.75 * IQR)
+LS <- quantile(datos$Purchase, 0.75) + (1.75 * IQR)
+# Mostrar los límites
+LI;LS
+```
+```{r}
+#Identificar los outliers
+outliers <- datos %>% filter(Purchase < LI | Purchase > LS)
+```
+
+```{r}
+total_datos <- nrow(datos);total_outliers <- nrow(outliers);porcentaje_outliers <- (total_outliers / total_datos) * 100
+
+cat(sprintf("El porcentaje de outliers es: %.2f%%\n", porcentaje_outliers))
+
+```
+```{r}
+ggplot(datos_1, aes(x = "", y = Purchase)) +
+  geom_boxplot() +
+  labs(title = "Distribución de compras en $ con outliers") +
+  theme_minimal()
+
+```
+```{r}
+# Aplicar el capping para los outliers de Purchase del dataset
+datos$Purchase <- ifelse(datos$Purchase > LS, LS,
+                       ifelse(datos$Purchase < LI, LI,
+                       datos$Purchase))
+```
+
+```{r}
+ggplot(datos, aes(x = "", y = Purchase)) +
+  geom_boxplot() +
+  labs(title = "Distribución de compras en dólares SIN outliers") +
+  theme_minimal()
+
+```
+
+```{r}
+# Histograma
+p1 <- ggplot(datos, aes(x = Purchase)) +
+  geom_histogram(bins = 30, fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = "Densidad - Histograma", x = "Purchase", y = "Frecuencia") +
+  theme_minimal()
+
+# QQ-plot
+p2 <- ggplot(datos, aes(sample = Purchase)) +
+  stat_qq_point(shape = 16, size = 1.5, color = "blue") +
+  stat_qq_line(color = "red") +
+  labs(title = "QQ-plot") +
+  theme_minimal()
+
+# Boxplot
+p3 <- ggplot(datos, aes(y = Purchase)) +
+  geom_boxplot(fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = "Boxplot", y = "Purchase") +
+  theme_minimal()
+
+# Organizar los gráficos en una figura
+grid.arrange(p1, p2, p3, ncol = 3, widths = c(1, 1, 1))
+```
+
+
+
+```{r}
+set.seed(2023)
+index <- createDataPartition(datos$Purchase, p=0.7, list = FALSE)
+#index
+
+dataTrain <- datos[index, ]
+dataTest <- datos[-index, ]
+dataTrain
+dataTest
+```
+
+```{r}
+lm1<-datos %>% 
+  lm(formula = Purchase ~ Gender + Age + Occupation + City_Category + Stay_In_Current_City_Years + Marital_Status + Product_Category )
+
+summary(lm1)
+```
+
+```{r}
+lm2<-datos %>% 
+  lm(formula = Purchase ~ Gender + Age + Occupation + City_Category + Marital_Status + Product_Category )
+
+summary(lm2)
+```
+
+```{r}
+str(dataTrain)
+head(dataTrain)
+```
+
+
+```{r}
+head(datos)
+```
+
+```{r}
+datos <- read.csv("C:/Users/dagam/OneDrive - Universidad Galileo/Escritorio/Cursos/Bedu/R/Proyecto/walmart_data.csv")
+```
+
+
+#Imputación para Variables Categóricas
+```{r}
+datos$Gender <- factor(datos$Gender, levels = c("F", "M"), labels = c("0", "1"))
+datos$Gender <- as.integer(datos$Gender)
+
+datos$City_Category <- factor(datos$City_Category, levels = c("A", "B","C"), labels = c("0", "1","2"))
+datos$City_Category <- as.integer(datos$City_Category)
+
+#datos$Age <- factor(datos$Age, levels = c("0-17","18-25","26-35", "36-45","46-50","51-55","55+"), labels = c(0, 1,2,3,4,5,6))
+#datos$Age <- as.integer(datos$Age)
+
+
+datos$Stay_In_Current_City_Years <- gsub("\\+", "", datos$Stay_In_Current_City_Years)
+datos$Stay_In_Current_City_Years <- as.integer(datos$Stay_In_Current_City_Years)
+```
+
+```{r}
+
+datos <- datos[sample(nrow(datos)), ]
+df <-head(datos, 6000)
+set.seed(123) 
+indice <- createDataPartition(df$Purchase, p = 0.8, list = FALSE)
+entrenamiento <- df[indice, ]
+prueba <- df[-indice, ]
+```
+
+## Regresión lineal
+```{r}
+# Entrenar el modelo de regresión lineal
+modelo_lm <- lm(Purchase ~ Gender + Age + Occupation + City_Category + Marital_Status + Product_Category, data = entrenamiento)
+
+# Predicciones en el conjunto de prueba
+predicciones_lm <- predict(modelo_lm, newdata = prueba)
+
+# Evaluación del modelo
+
+mse_lm <- mean((predicciones_lm - prueba$Purchase)^2)
+rmse_lm <- sqrt(mse_lm)
+mae_lm <- mean(abs(predicciones_lm - prueba$Purchase))
+r2_lm <- 1 - sum((predicciones_lm - prueba$Purchase)^2) / sum((mean(entrenamiento$Purchase) - prueba$Purchase)^2)
+
+```
+
+
+
+##Arboles de decisión
+
+```{r}
+# Entrenar el modelo de árbol de decisión
+modelo_tree <- rpart(Purchase ~ Gender + Age + Occupation + City_Category + Marital_Status + Product_Category, data = entrenamiento, method = "anova")
+
+# Predicciones en el conjunto de prueba
+predicciones_tree <- predict(modelo_tree, newdata = prueba)
+
+# Evaluación del modelo
+mse_tree <- mean((predicciones_tree - prueba$Purchase)^2)
+rmse_tree  <- sqrt(mse_tree)
+mae_tree  <- mean(abs(predicciones_tree - prueba$Purchase))
+r2_tree  <- 1 - sum((predicciones_tree - prueba$Purchase)^2) / sum((mean(entrenamiento$Purchase) - prueba$Purchase)^2)
+
+```
+##Bosques Aleatorios
+```{r}
+# Entrenar el modelo de bosques aleatorios
+modelo_rf <- randomForest(Purchase ~ Gender + Age + Occupation + City_Category + Marital_Status + Product_Category, data = entrenamiento, ntree = 100)
+
+# Predicciones en el conjunto de prueba
+predicciones_rf <- predict(modelo_rf, newdata = prueba)
+
+# Evaluación del modelo
+
+mse_rf <- mean((predicciones_rf - prueba$Purchase)^2)
+rmse_rf <- sqrt(mse_rf)
+mae_rf <- mean(abs(predicciones_rf - prueba$Purchase))
+r2_rf <- 1 - sum((predicciones_rf - prueba$Purchase)^2) / sum((mean(entrenamiento$Purchase) - prueba$Purchase)^2)
+
+```
+
+## Red neuronal
+
+```{r}
+
+formula <- Purchase ~ Gender + Age + Occupation + City_Category + Marital_Status + Product_Category
+
+set.seed(123) 
+modelo_nn <- neuralnet(formula, data = entrenamiento, hidden = c(5, 3), linear.output = TRUE)
+
+plot(modelo_nn)
+
+# Predicciones en el conjunto de prueba
+predicciones_nn <- predict(modelo_nn, newdata = prueba)
+
+# Evaluación del modelo
+
+mse_nn <- mean((predicciones_nn - prueba$Purchase)^2)
+rmse_nn <- sqrt(mse_nn)
+mae_nn <- mean(abs(predicciones_nn - prueba$Purchase))
+r2_nn <- 1 - sum((predicciones_nn - prueba$Purchase)^2) / sum((mean(entrenamiento$Purchase) - prueba$Purchase)^2)# Predicciones en el conjunto de prueba
+
+```
+
+
+```{r}
+# Crear un dataframe para las métricas
+metricas <- data.frame(
+  Modelo = c("Regresión Lineal", "Árbol de Decisión", "Bosques Aleatorios","Redes Neuronales"),
+  MSE = c(mse_lm, mse_tree, mse_rf,mse_nn),
+  RMSE = c(rmse_lm, rmse_tree, rmse_rf,rmse_nn),
+  MAE = c(mae_lm, mae_tree, mae_rf,mae_nn),
+  R2 = c(r2_lm, r2_tree, r2_rf,r2_nn)
+)
+
+# Mostrar la tabla
+print(metricas)
+```
+
+
+
+
+
+```{r}
+
+datos <- datos[sample(nrow(datos)), ]
+df <-datos
+set.seed(123)
+indice <- createDataPartition(df$Purchase, p = 0.8, list = FALSE)
+entrenamiento <- df[indice, ]
+prueba <- df[-indice, ]
+```
+
+## Regresión lineal
+```{r}
+# Entrenar el modelo de regresión lineal
+modelo_lm <- lm(Purchase ~ Gender + Age + Occupation + City_Category + Marital_Status + Product_Category, data = entrenamiento)
+
+# Predicciones en el conjunto de prueba
+predicciones_lm <- predict(modelo_lm, newdata = prueba)
+
+# Evaluación del modelo
+
+mse_lm <- mean((predicciones_lm - prueba$Purchase)^2)
+rmse_lm <- sqrt(mse_lm)
+mae_lm <- mean(abs(predicciones_lm - prueba$Purchase))
+r2_lm <- 1 - sum((predicciones_lm - prueba$Purchase)^2) / sum((mean(entrenamiento$Purchase) - prueba$Purchase)^2)
+
+```
+
+
+
+##Arboles de decisión
+
+```{r}
+# Entrenar el modelo de árbol de decisión
+modelo_tree <- rpart(Purchase ~ Gender + Age + Occupation + City_Category + Marital_Status + Product_Category, data = entrenamiento, method = "anova")
+
+# Predicciones en el conjunto de prueba
+predicciones_tree <- predict(modelo_tree, newdata = prueba)
+
+# Evaluación del modelo
+mse_tree <- mean((predicciones_tree - prueba$Purchase)^2)
+rmse_tree  <- sqrt(mse_tree)
+mae_tree  <- mean(abs(predicciones_tree - prueba$Purchase))
+r2_tree  <- 1 - sum((predicciones_tree - prueba$Purchase)^2) / sum((mean(entrenamiento$Purchase) - prueba$Purchase)^2)
+
+```
+##Bosques Aleatorios
+```{r}
+# Entrenar el modelo de bosques aleatorios
+modelo_rf <- randomForest(Purchase ~ Gender + Age + Occupation + City_Category + Marital_Status + Product_Category, data = entrenamiento, ntree = 100)
+
+# Predicciones en el conjunto de prueba
+predicciones_rf <- predict(modelo_rf, newdata = prueba)
+
+# Evaluación del modelo
+
+mse_rf <- mean((predicciones_rf - prueba$Purchase)^2)
+rmse_rf <- sqrt(mse_rf)
+mae_rf <- mean(abs(predicciones_rf - prueba$Purchase))
+r2_rf <- 1 - sum((predicciones_rf - prueba$Purchase)^2) / sum((mean(entrenamiento$Purchase) - prueba$Purchase)^2)
+
+```
+
+## Red neuronal
+
+```{r}
+
+formula <- Purchase ~ Gender + Age + Occupation + City_Category + Marital_Status + Product_Category
+
+set.seed(123) 
+modelo_nn <- neuralnet(formula, data = entrenamiento, hidden = c(5, 3), linear.output = TRUE)
+
+plot(modelo_nn)
+
+# Predicciones en el conjunto de prueba
+predicciones_nn <- predict(modelo_nn, newdata = prueba)
+
+# Evaluación del modelo
+
+mse_nn <- mean((predicciones_nn - prueba$Purchase)^2)
+rmse_nn <- sqrt(mse_nn)
+mae_nn <- mean(abs(predicciones_nn - prueba$Purchase))
+r2_nn <- 1 - sum((predicciones_nn - prueba$Purchase)^2) / sum((mean(entrenamiento$Purchase) - prueba$Purchase)^2)# Predicciones en el conjunto de prueba
+
+```
+
+
+```{r}
+# Crear un dataframe para las métricas
+metricas <- data.frame(
+  Modelo = c("Regresión Lineal", "Árbol de Decisión", "Bosques Aleatorios"),
+  MSE = c(mse_lm, mse_tree, mse_rf),
+  RMSE = c(rmse_lm, rmse_tree, rmse_rf),
+  MAE = c(mae_lm, mae_tree, mae_rf),
+  R2 = c(r2_lm, r2_tree, r2_rf)
+)
+
+# Mostrar la tabla
+print(metricas)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+# Convertir la columna 'Age' eliminando el signo '+'
+datos_edad_editada$Age <- gsub("\\+", "", datos$Age)
+
+# Obtener edades únicas
+uniques_ages <- unique(datos_edad_editada$Age)
+
+uniques_ages
+
+```
+calculate_media_age = lambda x: np.median([int(i) for i in x.split('-')])
+```{r}
+calculate_media_age <- function(x) {
+  # Divide la cadena por el guion, convierte cada parte en entero y calcula la mediana
+  median(as.numeric(unlist(strsplit(x, "-"))))
+}
+calculate_media_age("0-17")
+sapply(datos_edad_editada$Age_mediana, calculate_media_age)
+```
+
+
+```{r}
+datos_edad_editada
+```
+
+```{r}
+datos_edad_editada <- subset(datos_edad_editada, select = -c(User_ID,Product_ID, Age))
+datos_edad_editada
+```
+
+
+
+
+```{r}
+chart.Correlation(datos)
+
+```
+```{r}
+datos
+```
+
+
+```{r}
+# Escalar la media de la edad
+scaler <- preProcess(datos[ c("Purchase", "media_edad")], method = c("center", "scale"))
+data_scaled <- predict(scaler, datos)
+
+```
+```{r}
+data_scaled
+```
+
+```{r}
+set.seed(2023)
+index <- createDataPartition(data_scaled$Purchase, p=0.7, list = FALSE)
+#index
+
+dataTrain <- datos[index, ]
+dataTest <- datos[-index, ]
+dataTrain
+dataTest
+```
+
+
+
+
+```{r}
+# Define the training control
+cv_driver <- trainControl(method = "cv", number = 10)
+
+# Train the model
+lm2_2 <- train(
+  Purchase ~ Gender + media_edad + Occupation + City_Category + Marital_Status + Product_Category,
+  data = dataTrain,
+  method = "lm",
+  trControl = cv_driver
+)
+summary(lm2_2)
+
+```
